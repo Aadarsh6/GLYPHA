@@ -286,11 +286,12 @@ Do not use the current project for sensitive real-world communications.
 - [x] SQLite message history
 - [x] Encrypted local history
 - [x] Restart persistence
-- [ ] LAN communication between two physical machines
-- [ ] Unified `peer.py` architecture
-- [ ] Working rendezvous service
-- [ ] One real NAT traversal experiment
-- [ ] Documented NAT result
+- [x] LAN communication between two physical machines
+- [x] Unified `peer.py` architecture
+- [x] Working rendezvous service
+- [x] One real NAT traversal experiment
+- [x] Documented NAT result
+- [x] Automated tests: framing, storage, identity (pytest)
 - [ ] Relay fallback design/prototype
 - [ ] Connection state handling
 - [ ] Framing/protocol/storage automated tests
@@ -462,15 +463,15 @@ The blog should document failures honestly. If NAT traversal fails, that result 
 | SecretBox storage | DONE |
 | Restart persistence | DONE |
 | Unified `peer.py` | DONE |
-| Rendezvous prototype | DONE / NEEDS REDESIGN |
-| LAN | NEXT |
-| Production-style rendezvous | TODO |
-| Internet connectivity | TODO |
-| NAT traversal | TODO |
+| Rendezvous prototype | DONE |
+| LAN | DONE |
+| Production-style rendezvous | DONE |
+| Internet connectivity | DONE |
+| NAT traversal | DONE |
 | Relay fallback | TODO |
 | Connection state | TODO |
 | Security hardening | TODO |
-| Automated tests | PARTIAL |
+| Automated tests | DONE |
 | Threat model | TODO |
 | Final README | TODO |
 | Demo | TODO |
