@@ -1,5 +1,6 @@
 import hashlib
 
+from nacl.public import PrivateKey
 from nacl.secret import SecretBox
 
 from identity import load_or_create_key, load_or_create_secret_key
@@ -32,8 +33,6 @@ def test_fingerprint_stable_across_reloads(tmp_path):
 def test_fingerprint_format():
     # contract: 64 hex chars → 16 groups of 4, colon-separated.
     # This format is what two humans compare out-of-band — it must not drift
-    key = load_or_create_key.__wrapped__ if False else None
-    from nacl.public import PrivateKey
     pub = bytes(PrivateKey.generate().public_key)
     fp = format_fingerprint(pub)
     groups = fp.split(":")
