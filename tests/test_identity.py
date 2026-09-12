@@ -32,13 +32,15 @@ def test_fingerprint_stable_across_reloads(tmp_path):
 
 def test_fingerprint_format():
     # contract: 64 hex chars → 16 groups of 4, colon-separated.
-    # This format is what two humans compare out-of-band — it must not drift
+    # This format is what two humans compare out-of-band — it must not drift.
+    # Stripping colons must yield exactly the raw SHA-256 of the key bytes:
+    # grouping is cosmetic, the underlying hash is the identity.
     pub = bytes(PrivateKey.generate().public_key)
     fp = format_fingerprint(pub)
     groups = fp.split(":")
     assert len(groups) == 16
     assert all(len(g) == 4 for g in groups)
-    assert fp == hashlib.sha256(pub).hexdigest()  # ungrouped form is the raw hash
+    assert fp.replace(":", "") == hashlib.sha256(pub).hexdigest()
 
 
 def test_secret_key_size_and_persistence(tmp_path):
