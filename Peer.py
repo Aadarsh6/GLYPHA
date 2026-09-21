@@ -438,6 +438,51 @@ def main():
         print("unknown mode:", sys.argv[1])
         sys.exit(1)
 
+RELAY_PORT = 7001
+
+
+def relay_mode(my_name, peer_name, relay_host):
+    """Chat through the relay when direct P2P is impossible.
+    Handshake and chat are identical to direct mode — the relay is a
+    transparent byte pipe, so peers can't tell the difference."""
+    private_key = load_or_create_key(f"{my_name}_key.bin")
+    own_fp = format_fingerprint(bytes(private_key.public_key))
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(10)
+    try:
+        sock.connect((relay_host, RELAY_PORT))
+    except OSError:
+        print(f"Relay at {relay_host}:{RELAY_PORT} unreachable")
+        return
+
+    # join protocol: first joiner (no target) waits; second (with target) triggers splice
+    join = {"type": "relay_join", "id": my_name}
+    # heuristic: if WE were told to reach someone, we carry the target
+    if peer_name:
+        join["target"] = peer_name
+    send_message(sock, json.dumps(join).encode())
+
+    resp_raw = recv_message(sock)
+    if resp_raw is None:
+        print("Relay closed the connection")
+        return
+    resp = json.loads(resp_raw.decode())
+    print("[relay]", resp.get("status"))
+
+    sock.settimeout(None)   # chat socket must block again
+
+    box, peer_fp = handshake(sock, private_key, initiator=bool(peer_name))
+    if box is None:
+        print("Peer never joined the relay")
+        return
+    if not verify_fingerprints(own_fp, peer_fp):
+        print("Fingerprint not verified — closing.")
+        sock.close()
+        return
+    chat(sock, box, peer_fp, my_name)
+
+
 
 if __name__ == "__main__":
     main()
