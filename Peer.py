@@ -123,43 +123,6 @@ def chat(sock, box, peer_fp, name):
     sock.close()
     receiver.join(timeout=2)
 
-    def receive_loop():
-        nonlocal connected
-        while True:
-            data = recv_message(sock)
-            if data is None:
-                print("\nPeer disconnected.")
-                connected = False
-                break
-            try:
-                message = box.decrypt(data).decode()
-            except Exception:
-                print("\nReceived an undecryptable frame — ignored.")
-                continue
-            save_message(db_filename, peer_fp, "received", message, secret_box)
-            print("Them:", message)
-
-    threading.Thread(target=receive_loop, daemon=True).start()
-
-    while connected:
-        try:
-            message = input(f"{name}: ")
-        except KeyboardInterrupt:
-            break
-        if not connected:
-            print("Peer is gone.")
-            break
-        if message == "quit":
-            break
-        try:
-            send_message(sock, box.encrypt(message.encode()))
-        except OSError:
-            print("Peer is gone.")
-            break
-        save_message(db_filename, peer_fp, "sent", message, secret_box)
-
-    sock.close()
-
 RENDEZVOUS_PORT = 7000
 RENDEZVOUS_REFRESH = 30  # server TTL is 90s; refresh at 1/3 of TTL
 
@@ -398,7 +361,60 @@ def connect_mode(host, port, name):
         return
     chat(sock, box, peer_fp, name)
 
+RELAY_PORT = 7001
 
+
+def relay_mode(my_name, peer_name, relay_host):
+    """Chat through the relay when direct P2P is impossible.
+    Handshake and chat are identical to direct mode — the relay is a
+    transparent byte pipe."""
+    private_key = load_or_create_key(f"{my_name}_key.bin")
+    own_fp = format_fingerprint(bytes(private_key.public_key))
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(15)
+    try:
+        sock.connect((relay_host, RELAY_PORT))
+    except OSError:
+        print(f"Relay at {relay_host}:{RELAY_PORT} unreachable")
+        return
+
+    send_message(sock, json.dumps(
+        {"type": "relay_join", "id": my_name, "target": peer_name}
+    ).encode())
+
+    resp_raw = recv_message(sock)
+    if resp_raw is None:
+        print("Relay closed the connection")
+        return
+    status = json.loads(resp_raw.decode()).get("status")
+    print("[relay]", status)
+
+    if status not in ("waiting", "matched"):
+        sock.close()
+        return
+
+    if status == "waiting":
+        print(f"Waiting for '{peer_name}' to join the relay...")
+
+    # waiting  -> we joined first  -> handshake responder
+    # matched  -> we joined second -> handshake initiator
+    sock.settimeout(120)   # bounded wait for the peer; not forever
+
+    box, peer_fp = handshake(sock, private_key, initiator=(status == "matched"))
+    if box is None:
+        print("Peer never joined the relay (or timed out)")
+        return
+
+    sock.settimeout(None)   # chat must block again
+
+    if not verify_fingerprints(own_fp, peer_fp):
+        print("Fingerprint not verified — closing.")
+        sock.close()
+        return
+    chat(sock, box, peer_fp, my_name)
+
+    
 def main():
     if len(sys.argv) < 2:
         print("usage:")
@@ -434,53 +450,17 @@ def main():
         my_port = int(sys.argv[4]) if len(sys.argv) > 4 else 9999
         rv = sys.argv[5] if len(sys.argv) > 5 else "127.0.0.1"
         punch_mode(my_id, peer_id, my_port, rv)
+
+    elif sys.argv[1] == "relay":
+        # usage: python peer.py relay <my_id> <peer_id> <relay_host>
+        if len(sys.argv) < 5:
+            print("usage: python peer.py relay <my_id> <peer_id> <relay_host>")
+            sys.exit(1)
+        relay_mode(sys.argv[2], sys.argv[3], sys.argv[4])
     else:
         print("unknown mode:", sys.argv[1])
         sys.exit(1)
 
-RELAY_PORT = 7001
-
-
-def relay_mode(my_name, peer_name, relay_host):
-    """Chat through the relay when direct P2P is impossible.
-    Handshake and chat are identical to direct mode — the relay is a
-    transparent byte pipe, so peers can't tell the difference."""
-    private_key = load_or_create_key(f"{my_name}_key.bin")
-    own_fp = format_fingerprint(bytes(private_key.public_key))
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(10)
-    try:
-        sock.connect((relay_host, RELAY_PORT))
-    except OSError:
-        print(f"Relay at {relay_host}:{RELAY_PORT} unreachable")
-        return
-
-    # join protocol: first joiner (no target) waits; second (with target) triggers splice
-    join = {"type": "relay_join", "id": my_name}
-    # heuristic: if WE were told to reach someone, we carry the target
-    if peer_name:
-        join["target"] = peer_name
-    send_message(sock, json.dumps(join).encode())
-
-    resp_raw = recv_message(sock)
-    if resp_raw is None:
-        print("Relay closed the connection")
-        return
-    resp = json.loads(resp_raw.decode())
-    print("[relay]", resp.get("status"))
-
-    sock.settimeout(None)   # chat socket must block again
-
-    box, peer_fp = handshake(sock, private_key, initiator=bool(peer_name))
-    if box is None:
-        print("Peer never joined the relay")
-        return
-    if not verify_fingerprints(own_fp, peer_fp):
-        print("Fingerprint not verified — closing.")
-        sock.close()
-        return
-    chat(sock, box, peer_fp, my_name)
 
 
 
