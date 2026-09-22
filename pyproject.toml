@@ -8,12 +8,11 @@ version = "2.0.0"
 description = "P2P encrypted chat from raw Python sockets: E2E encryption, persistent identities, fingerprint verification, peer discovery, NAT traversal with relay fallback"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"          
 authors = [{ name = "Adarsh Mishra" }]
 keywords = ["p2p", "encryption", "chat", "sockets", "nacl", "networking", "e2e"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Communications :: Chat",
     "Topic :: Education",
 ]
