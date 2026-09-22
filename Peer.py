@@ -250,7 +250,7 @@ def listen_mode(port, name, rv_host=None):
 
     print("Your fingerprint:", own_fp)
     print(f"Listening on 0.0.0.0:{port}")
-    print(f"Other peer connects with: python peer.py connect {get_lan_ip()} {port} <their-name>")
+    print(f"Other peer connects with: glypha connect {get_lan_ip()} {port} <their-name>")
 
     if rv_host:
         # discovery is optional infrastructure: if it's down, chat still works
@@ -308,7 +308,7 @@ def find_mode(peer_id, rv_host):
         print(f"Peer '{peer_id}' is at {result['ip']}:{result['port']}")
         print(f"Fingerprint: {result['fingerprint']}")
         print("Verify this fingerprint with the peer out-of-band, then:")
-        print(f"  python peer.py connect {result['ip']} {result['port']} <your-name>")
+        print(f"  glypha connect {result['ip']} {result['port']} <your-name>")
     else:
         print(f"'{peer_id}' not found (never registered, or entry expired)")
 
@@ -579,7 +579,7 @@ def chat_mode(my_name, peer_name, rv_host):
         result = try_relay(my_name, peer_name, private_key, own_fp, rv_host, expected_fp)
         if result is None:
             print(f"[chat] could not reach '{peer_name}'.")
-            print(f"       Are they running:  python peer.py chat {peer_name} {my_name} {rv_host}")
+            print(f"       Are they running:  glypha chat{peer_name} {my_name} {rv_host}")
             return
 
     sock, box, peer_fp = result
