@@ -78,17 +78,49 @@ def verify_fingerprints(own_fp, peer_fp):
     return answer.lower() in ("yes", "y")
 
 
-def verify_or_reject(own_fp, peer_fp, expected_fp):
-    """Rendezvous-assisted verification: if discovery published a
-    fingerprint for this peer, the handshake key MUST match it (automatic
-    reject on mismatch). Without one, fall back to manual confirmation."""
-    if expected_fp is not None:
-        if peer_fp.replace(":", "") != expected_fp.replace(":", ""):
-            print("[chat] fingerprint MISMATCH vs rendezvous — rejecting")
-            return False
-        print("[chat] fingerprint verified via rendezvous:", peer_fp)
+KNOWN_PEERS_FILE = "known_peers.json"   # local trust pins — gitignored
+
+def load_known_peers():
+    try:
+        with open(KNOWN_PEERS_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def pin_peer(name, fingerprint):
+    known = load_known_peers()
+    known[name] = fingerprint
+    with open(KNOWN_PEERS_FILE, "w") as f:
+        json.dump(known, f, indent=2)
+
+def verify_or_reject(own_fp, peer_fp, expected_fp, peer_name=None):
+    """Trust model (SSH known_hosts style):
+    - pinned before?  auto-verify against the PIN, not the registry.
+      A changed key = loud warning + reject (possible impersonation).
+    - first contact?  the human verifies out-of-band — the real TOFU
+      moment — then we pin for all future contacts.
+    expected_fp (registry) is only a cross-check, never a trust source."""
+    clean = peer_fp.replace(":", "")
+    pinned = load_known_peers().get(peer_name) if peer_name else None
+
+    if pinned:
+        if clean == pinned.replace(":", ""):
+            print(f"[chat] '{peer_name}' verified against pinned key")
+            return True
+        print(f"[chat] KEY CHANGE for '{peer_name}'!")
+        print(f"       pinned: {pinned}")
+        print(f"       got:    {peer_fp}")
+        print("[chat] possible impersonation — rejecting.")
+        return False
+
+    # first contact: the human decides, then we pin
+    if verify_fingerprints(own_fp, peer_fp):
+        if peer_name:
+            pin_peer(peer_name, clean)
+            print(f"[chat] pinned '{peer_name}' for future auto-verification")
         return True
-    return verify_fingerprints(own_fp, peer_fp)
+    return False
 
 
 # ───────────────────────── chat (shared by every mode) ─────────────────────────
@@ -444,7 +476,7 @@ def _relay_socket(my_name, peer_name, relay_host):
 
 # ───────────────────── V2.3: chat mode (the product command) ─────────────────────
 
-def try_direct(host, port, private_key, own_fp, expected_fp):
+def try_direct(host, port, private_key, own_fp, expected_fp, peer_name):
     """Ladder rung 1: dial the rendezvous-published endpoint directly
     (works on LAN / public endpoints). Returns (sock, box, peer_fp) or None."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -458,7 +490,7 @@ def try_direct(host, port, private_key, own_fp, expected_fp):
     box, peer_fp = handshake(sock, private_key, initiator=True)
     if box is None:
         return None
-    if not verify_or_reject(own_fp, peer_fp, expected_fp):
+    if not verify_or_reject(own_fp, peer_fp, expected_fp, peer_name):
         sock.close()
         return None
     return sock, box, peer_fp
@@ -495,7 +527,7 @@ def try_punch(my_name, peer_name, private_key, own_fp, rv_host, expected_fp):
 
     winner, peer_public = result
     peer_fp = format_fingerprint(peer_public)
-    if not verify_or_reject(own_fp, peer_fp, expected_fp):
+    if not verify_or_reject(own_fp, peer_fp, expected_fp, peer_name):
         winner.close()
         return None
     return winner, Box(private_key, PublicKey(peer_public)), peer_fp
@@ -507,7 +539,7 @@ def try_relay(my_name, peer_name, private_key, own_fp, rv_host, expected_fp):
     if result is None:
         return None
     sock, box, peer_fp = result
-    if not verify_or_reject(own_fp, peer_fp, expected_fp):
+    if not verify_or_reject(own_fp, peer_fp, expected_fp, peer_name):
         sock.close()
         return None
     return sock, box, peer_fp
@@ -530,7 +562,7 @@ def chat_mode(my_name, peer_name, rv_host):
     if info is not None and info.get("status") == "found":
         expected_fp = info.get("fingerprint")
         print(f"[chat] trying direct connection to {info['ip']}:{info['port']}...")
-        result = try_direct(info["ip"], info["port"], private_key, own_fp, expected_fp)
+        result = try_direct(info["ip"], info["port"], private_key, own_fp, expected_fp, peer_name)
         if result is None:
             print("[chat] direct failed — trying NAT traversal...")
     else:

@@ -1,3 +1,4 @@
 *.db
 *.bin
 text.txt
+known_peers.json
