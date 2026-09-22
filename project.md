@@ -551,3 +551,11 @@ V1 outcome per the fixed definition: real traversal attempt executed,result meas
 
  # **"V1 done"**
 "I built a P2P encrypted messenger from raw Python sockets — custom framing, cryptographic identities, fingerprint verification, encrypted SQLite history, peer discovery via a cloud rendezvous I deployed, and I ran a real NAT traversal experiment across carrier-grade NAT, measured the failure, and documented why relays are necessary."
+
+
+# **V2.1 — Relay**
+What: relay_server.py (port 7001) — splices two peers' outboundconnections into a transparent byte-pipe. relay_mode in peer.py;handshake/chat identical to direct mode. Relay parses nothing, holdsno keys (VM has no PyNaCl); join protocol with mutual-name matching,matched-status only to second joiner (first joiner's next bytes arethe peer's handshake key — pipe is transparent from splice onward).
+
+Why: M15 measured that direct P2P fails across home-NAT ↔ CGNAT;outbound always works. The relay converts that failure into a workingpath — carrying without reading.
+
+Result: loopback control passed (after fixing three design bugs:both-peers-carry-target deadlock, waiting-socket premature close,double-matched-status corrupting the handshake). Internet run passed:both peers through Azure relay, chat bidirectional, relay log showssplice event only. Same-laptop run proves mechanics over the realInternet path; two-machine Internet run scheduled for the demo.
