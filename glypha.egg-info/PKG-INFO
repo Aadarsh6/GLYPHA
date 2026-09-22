@@ -1,0 +1,218 @@
+Metadata-Version: 2.4
+Name: glypha
+Version: 2.0.0
+Summary: P2P encrypted chat from raw Python sockets: E2E encryption, persistent identities, fingerprint verification, peer discovery, NAT traversal with relay fallback
+Author: Adarsh Mishra
+License: MIT
+Project-URL: Homepage, https://github.com/<your-github-username>/<repo-name>
+Keywords: p2p,encryption,chat,sockets,nacl,networking,e2e
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Topic :: Communications :: Chat
+Classifier: Topic :: Education
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pynacl>=1.5
+
+# P2P Encrypted Chat
+
+An educational peer-to-peer encrypted messaging system built from raw Python TCP sockets — custom message framing, persistent cryptographic identities, fingerprint-based peer authentication, encrypted local history, peer discovery via a cloud rendezvous server, and a measured NAT traversal experiment.
+
+This is **not** a WebRTC/PeerJS wrapper. Every layer — framing, encryption, identity, storage, discovery — is built and understood from the socket up.
+
+> ⚠️ **Educational project. Not Signal-grade security. Do not use for sensitive communications.** See [Security Model](#security-model) below.
+
+## Table of Contents
+
+- [What It Does](#what-it-does)
+- [Architecture](#architecture)
+- [Usage](#usage)
+- [The NAT Traversal Experiment](#the-nat-traversal-experiment)
+- [Security Model](#security-model)
+- [Repository Layout](#repository-layout)
+- [Testing](#testing)
+- [Bugs Found (and Fixed) Along the Way](#bugs-found-and-fixed-along-the-way)
+- [Infrastructure Notes](#infrastructure-notes)
+- [Roadmap (V2)](#roadmap-v2)
+
+## What It Does
+
+| Capability | Proof |
+|---|---|
+| Two peers chat E2E-encrypted | Verified on two physical laptops over LAN, recorded on video |
+| Identity survives restarts | Same fingerprint (`c849:a2b7...`) across every session of the build |
+| History persists, encrypted at rest | Restart → history reloads and decrypts; raw SQL shows only ciphertext |
+| Peer discovery by name | `find aadarsh` → endpoint + fingerprint, worked across two Indian carrier networks + Azure |
+| Cross-network discovery over the real Internet | Rendezvous hosted on an Azure VM; peers on home Wi-Fi (Delhi) + mobile hotspot registered and looked each other up |
+| Fingerprint verification | Both sides display fingerprints; out-of-band comparison; pre-connect verification via the registry |
+
+## Demo
+
+🎥 Two physical laptops chatting over LAN, disconnect → reconnect → history reloads.
+
+| Fingerprint verification across two screens | Rendezvous log: two peers, two public NAT IPs | Punch verdict on CGNAT |
+|---|---|---|
+| The out-of-band fingerprint check, side by side | The registry holding two different public NAT mappings (home Wi-Fi + mobile hotspot) — discovery across the real Internet | Control pass on loopback vs. failure on real CGNAT |
+
+*(Screenshots live in `screenshots/`.)*
+
+## Architecture
+
+```text
+              ┌──────────────────────┐
+              │  Rendezvous Server   │
+              │ Discovery/Signaling  │   (Azure VM, port 7000)
+              └──────────┬───────────┘
+                         │ endpoint + fingerprint
+                   ↙          ↘
+              ┌────────┐   ┌────────┐
+              │ Peer A │◄─►│ Peer B │   direct P2P chat (port 9999)
+              └────────┘   └────────┘
+```
+
+Every layer of the transport stack is implemented, not imported:
+
+```text
+Application (chat, history)
+ ↓
+Peer management (listen / connect / find / punch modes)
+ ↓
+Cryptographic identity (persistent keypairs, fingerprints)
+ ↓
+PyNaCl Box (X25519 key exchange + XSalsa20-Poly1305 AEAD)
+ ↓
+Custom framing ([4-byte big-endian length][payload])
+ ↓
+TCP sockets (blocking, threaded receive)
+ ↓
+IP / NAT / firewall
+```
+
+Local storage is a separate concern from transport: every message is passed through `SecretBox.encrypt` before being written to a SQLite `BLOB`, using a storage key that is distinct from the transport identity key.
+
+## Usage
+
+```bash
+git clone <repo> && cd p2p-chat
+pip install pynacl
+
+# terminal 1 — rendezvous server (or point at the deployed one)
+python rendezvous_server.py                 # port 7000
+
+# terminal 2 — peer A, discoverable by name
+python peer.py listen 9999 aadarsh <rv_ip>
+
+# terminal 3 — peer B finds and connects
+python peer.py find aadarsh <rv_ip>
+python peer.py connect <aadarsh-ip> 9999 ishu
+
+# NAT traversal attempt (coordinated simultaneous open)
+python peer.py punch <my_id> <peer_id> <my_port> <rv_ip>
+```
+
+Once connected, both sides display their fingerprints. Compare them out-of-band (e.g. a phone call) before trusting the session. Type `quit` to exit — history reloads automatically the next time you connect to the same peer.
+
+## The NAT Traversal Experiment
+
+This is the centerpiece of the V1 build: a real, measured attempt at direct P2P connectivity across the open Internet — not a simulated or hand-waved result.
+
+**Setup:** Rendezvous server on an Azure VM (Central India). Peer A on home Wi-Fi (`192.168.1.8` local, NAT public `122.162.151.183`). Peer B on a phone hotspot (`10.197.183.135` local behind carrier-grade NAT, NAT public `157.49.119.123`).
+
+| Test | Result |
+|---|---|
+| Baseline: uncoordinated direct dial across the Internet | ❌ `WinError 10060` timeout (~20s) — NAT drops the unsolicited inbound SYN |
+| Control: simultaneous open on loopback | ✅ Punched through — hole-punching mechanics proven correct |
+| Simultaneous open, home NAT ↔ Airtel CGNAT, 60s | ❌ Neither NAT delivered the peer's SYNs |
+
+**Conclusion:** the code is correct (the loopback control passes); the network refuses. Carrier-grade NAT shares one public IP across thousands of subscribers with endpoint-dependent mapping, which direct TCP hole punching cannot reliably defeat. This is a measured failure, explained at the NAT level, not a bug.
+
+**Fallback strategy (documented, V2):** a relay forwards already-encrypted traffic. The rendezvous/relay server never holds keys — by construction, it doesn't even have PyNaCl installed, so the "phone book" literally cannot read messages even if it wanted to.
+
+## Security Model
+
+**Protects against:**
+- Passive network observers (end-to-end AEAD encryption)
+- Peer impersonation across reconnects (persistent identities + fingerprint verification)
+- Plaintext history on disk (SQLite holds only ciphertext)
+- IP changes redefining identity (history is keyed by fingerprint, not IP)
+
+**Does NOT protect against:**
+- **No forward secrecy** — static-static ECDH means a later key compromise exposes previously recorded traffic; there is no ratchet
+- Unencrypted key files at rest
+- Replay attacks (no counters or nonces yet)
+- A malicious rendezvous server serving the wrong endpoint (fingerprint comparison mitigates this, but Trust-On-First-Use doesn't eliminate it)
+- Traffic analysis / metadata leakage
+- Machine compromise
+- `peer_id` squatting — names aren't yet bound to keys (V2 pins names to the first-registered key)
+- Implementation bugs not yet found
+
+This is an educational project. **Do not use it for sensitive real-world communications.**
+
+## Repository Layout
+
+```text
+p2p-chat/
+├── peer.py               # unified peer: listen | connect | find | punch
+├── protocol.py           # length-prefixed framing (OSError-as-EOF contract)
+├── identity.py           # persistent transport + storage keys
+├── storage.py            # encrypted SQLite history
+├── rendezvous_server.py  # discovery/signaling (port 7000, TTL 90s)
+├── crypto_test.py        # manual crypto sanity check
+├── tests/                # 19 pytest tests
+├── project.md            # living engineering doc (milestones, threat model)
+├── README.md             # this file
+└── .gitignore            # *.bin *.db *.pem __pycache__/ .pytest_cache/
+```
+
+## Testing
+
+19 automated tests across 3 files, running in ~0.53s:
+
+- **`test_protocol.py` (8 tests):** roundtrips (small/empty/binary-256), back-to-back frames in one burst, fragmented delivery (header split mid-stream), 1 MiB through a threaded reader, clean-FIN → `None`, RST → `None` (regression for the M13 shutdown bug, reproduced via `SO_LINGER(0)`)
+- **`test_storage.py` (6 tests):** roundtrip, insertion order (locks `ORDER BY id`), per-fingerprint isolation, message direction, ciphertext-at-rest (reads the raw SQL like an attacker would), wrong key → `CryptoError` (regression for the M12 key-orphaning incident)
+- **`test_identity.py` (5 tests):** key persistence, distinct identities, fingerprint stability across reloads, fingerprint format contract (16×4 hex groups; stripping colons = raw SHA-256), `SecretBox` key size
+
+```bash
+python -m pytest tests/ -v
+# 19 passed in ~0.5s
+```
+
+## Bugs Found (and Fixed) Along the Way
+
+Each of these was caught by the test suite or a real run, and each is now guarded against:
+
+- **`Peer.py` vs `peer.py`** — Windows case-insensitivity masked this; caught on the first test run and would have broken on Linux/macOS
+- **Windows `Ctrl+C` sends RST, not FIN** — the receive thread crashed with `ConnectionResetError`; fixed by treating `OSError` as EOF everywhere in `recv_message`, giving one consistent failure convention
+- **Daemon thread killed mid-print at shutdown** (`Fatal Python error: _enter_buffered_busy`) — fixed by joining the receiver thread with a 2s timeout before exit
+- **Phantom "Peer disconnected" on your own `quit`** — fixed with an `if connected:` guard
+- **Storage-key rename orphaned encrypted history** — surfaces as a loud `CryptoError` by design; now locked by a regression test
+- **`ORDER BY timestamp` scrambled messages at second-granularity** — switched to `ORDER BY id`
+- **Fingerprint gate was exact-match and rejected `"y"`** — fixed with an explicit allowlist (`yes`/`y`); anything else still fails closed
+- **Punch-mode split-brain connections** — fixed with identity-proof at accept: a connection must present the public key matching the registry fingerprint, or it's dropped
+- **Windows failed-socket reuse** — fixed by using a fresh socket per punch attempt
+- **`get_lan_ip()` originally used a TCP socket** — it would open a real connection to `8.8.8.8:80` (hanging ~20s when unreachable) instead of doing a route lookup — replaced with a UDP socket, which never sends a packet
+- **Rendezvous lookup race** — fixed with a 20s retry loop so start order no longer matters
+- **Python block-buffers stdout when redirected**, causing empty logs on an otherwise healthy server — fixed by running with `python3 -u`
+
+## Infrastructure Notes
+
+Real cloud/ops lessons from deploying the rendezvous server:
+
+- **Azure for Students** has region allowlist restrictions (`RequestDisallowedByAzure`) and a B-series vCPU quota of 0 in some regions; worked around with a `B2ats_v2` instance (~$0.0062/hr). No auto-shutdown was available in-region, so a manual portal-stop discipline plus a $15 budget alert was used instead.
+- Two independent firewall layers must both be opened for the server to be reachable: the cloud Network Security Group **and** the OS-level `ufw`.
+- A VM restart kills running processes but not files, so the server is started with `nohup python3 -u rendezvous_server.py &` every time; `pgrep` is checked first to avoid stale double instances (which caused a confusing false failure once).
+- MinTTY/Git Bash swallows `Ctrl+C` for console-less programs — use `winpty`.
+- The VM's public IP can change on deallocate, so it's always re-read from the Azure portal rather than assumed.
+- The rendezvous server records the **observed** source IP of a connecting peer (which can't be lied to) alongside the **peer-advertised** listen port (which it has no way to independently verify). Registering via `127.0.0.1` poisons the registry — the same observed-vs-advertised mechanism is what later reveals real NAT public mappings.
+
+## Roadmap (V2)
+
+- **Relay implementation** — the fallback for when punching fails; already-encrypted traffic is relayed, and the rendezvous server is upgraded to hand out relay info. This is what makes cross-Internet chat work reliably, not just when NAT cooperates.
+- **Packaging** — a `pyproject.toml` and a PyPI release, so usage becomes `pip install <name>` followed by `p2pchat listen --name aadarsh` / `p2pchat connect aadarsh`, with no files, ports, or internals exposed to the end user.
+- **Auto-fallback chain** — direct → punch → relay, orchestrated by a connection state machine.
+- **Name pinning** — first registration binds a `peer_id` to a public key, closing the squatting gap.
+- **Hardening** — `MAX_MESSAGE_SIZE`, replay counters, heartbeats/timeouts, and key-file permissions.
+
+---
+
+*Stack: Python 3.13, stdlib `socket`/`threading`/`struct`/`sqlite3`/`json`, PyNaCl (libsodium bindings), pytest. No frameworks. ~5 core modules + rendezvous server, 19 automated tests, 15 milestones, ~4 weeks of build time.*
