@@ -592,12 +592,12 @@ def chat_mode(my_name, peer_name, rv_host):
 def main():
     if len(sys.argv) < 2:
         print("usage:")
-        print("  python peer.py chat <my_name> <peer_name> [rv_host]   # product command")
-        print("  python peer.py listen [port] [name] [rv_host]")
-        print("  python peer.py connect <host> [port] [name]")
-        print("  python peer.py find <peer_id> [rv_host]")
-        print("  python peer.py punch <my_id> <peer_id> [my_port] [rv_host]")
-        print("  python peer.py relay <my_id> <peer_id> <relay_host>")
+        print("  glypha chat <my_name> <peer_name> [rv_host]   # product command")
+        print("  glypha listen [port] [name] [rv_host]")
+        print("  glypha connect <host> [port] [name]")
+        print("  glypha find <peer_id> [rv_host]")
+        print("  glypha punch <my_id> <peer_id> [my_port] [rv_host]")
+        print("  glypha relay <my_id> <peer_id> <relay_host>")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -623,7 +623,7 @@ def main():
 
     elif mode == "punch":
         if len(sys.argv) < 4:
-            print("usage: python peer.py punch <my_id> <peer_id> [my_port] [rv_host]")
+            print("usage: glypha punch <my_id> <peer_id> [my_port] [rv_host]")
             sys.exit(1)
         my_id, peer_id = sys.argv[2], sys.argv[3]
         my_port = int(sys.argv[4]) if len(sys.argv) > 4 else 9999
@@ -632,13 +632,13 @@ def main():
 
     elif mode == "relay":
         if len(sys.argv) < 5:
-            print("usage: python peer.py relay <my_id> <peer_id> <relay_host>")
+            print("usage: glypha relay <my_id> <peer_id> <relay_host>")
             sys.exit(1)
         relay_mode(sys.argv[2], sys.argv[3], sys.argv[4])
 
     elif mode == "chat":
         if len(sys.argv) < 4:
-            print("usage: python peer.py chat <my_name> <peer_name> [rv_host]")
+            print("usage: glypha chat <my_name> <peer_name> [rv_host]")
             sys.exit(1)
         rv = sys.argv[4] if len(sys.argv) > 4 else "127.0.0.1"
         chat_mode(sys.argv[2], sys.argv[3], rv)
