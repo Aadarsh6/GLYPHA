@@ -574,3 +574,11 @@ What: first contact requires human out-of-band fingerprint verification(the real
 Why: V2.3's draft auto-verified first contacts against the rendezvous— downgrading first-contact security to registry-trust. The pin modelrestores human verification at first contact while keepingauto-verification for every later contact. Closes most of thename-squatting gap for known contacts.
 
 Result: three-run test — first contact prompted + pinned both sides;reconnect auto-verified against pins with no prompts; ladder stillre-evaluated (direct attempted before relay fallback).
+
+
+**V2.5 — Packaging & publication**
+What: pyproject.toml (SPDX license, six py-modules, three entry points:glypha / glypha-rendezvous / glypha-relay), python -m build, twine.TestPyPI rehearsal → clean venv stranger-test → PyPI publication.
+
+Result: [`https://pypi.org/project/glypha/2.0.0/`] — pip install glyphaworks worldwide with pynacl resolved as a dependency. Entry-point smoketest passed (glypha, glypha-relay); empty-message input fix included;graceful degradation re-verified via the packaged command.
+
+Note: release process = bump version → build → twine upload (~5 min).README refresh + CI/CD auto-publish queued for next release.
