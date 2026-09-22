@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glypha"
+version = "2.0.0"
+description = "P2P encrypted chat from raw Python sockets: E2E encryption, persistent identities, fingerprint verification, peer discovery, NAT traversal with relay fallback"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Adarsh Mishra" }]
+keywords = ["p2p", "encryption", "chat", "sockets", "nacl", "networking", "e2e"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Communications :: Chat",
+    "Topic :: Education",
+]
+dependencies = ["pynacl>=1.5"]
+
+[project.urls]
+Homepage = "https://github.com/<your-github-username>/<repo-name>"
+
+[project.scripts]
+glypha = "peer:main"
+glypha-rendezvous = "rendezvous_server:main"
+glypha-relay = "relay_server:main"
+
+[tool.setuptools]
+py-modules = ["peer", "protocol", "identity", "storage", "rendezvous_server", "relay_server"]

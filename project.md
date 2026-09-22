@@ -559,3 +559,18 @@ What: relay_server.py (port 7001) — splices two peers' outboundconnections int
 Why: M15 measured that direct P2P fails across home-NAT ↔ CGNAT;outbound always works. The relay converts that failure into a workingpath — carrying without reading.
 
 Result: loopback control passed (after fixing three design bugs:both-peers-carry-target deadlock, waiting-socket premature close,double-matched-status corrupting the handshake). Internet run passed:both peers through Azure relay, chat bidirectional, relay log showssplice event only. Same-laptop run proves mechanics over the realInternet path; two-machine Internet run scheduled for the demo.
+
+
+**V2.3 — chat mode (the product command)**
+What: python peer.py chat <my_name> <peer_name> [rv_host] — walks thefull connectivity ladder automatically: direct (rendezvous-publishedendpoint) → coordinated punch (per-name deterministic ports, shortenedwindows) → relay. User makes zero transport decisions, sees zerotracebacks. One rendezvous lookup up front feeds both the direct rungand identity cross-checking.
+
+Why: every transport existed and was tested; the product gap wasorchestration. Also fixes the V2.3-draft security regression where theregistry fingerprint auto-verified first contacts — see V2.4.
+
+Result: full ladder demonstrated over the Internet — direct attemptedand failed (NAT), punch attempted and failed (CGNAT), relay connected.Second run: reconnect via relay with no prompts.
+
+**V2.4-lite — known_hosts-style peer pinning**
+What: first contact requires human out-of-band fingerprint verification(the real TOFU moment), then the peer's fingerprint is pinned inknown_peers.json (gitignored). All future contacts auto-verify againstthe PIN, not the registry. Key change = loud warning + reject(impersonation defense). Registry fingerprint remains a cross-check,never a trust source.
+
+Why: V2.3's draft auto-verified first contacts against the rendezvous— downgrading first-contact security to registry-trust. The pin modelrestores human verification at first contact while keepingauto-verification for every later contact. Closes most of thename-squatting gap for known contacts.
+
+Result: three-run test — first contact prompted + pinned both sides;reconnect auto-verified against pins with no prompts; ladder stillre-evaluated (direct attempted before relay fallback).

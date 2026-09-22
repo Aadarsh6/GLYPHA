@@ -171,6 +171,8 @@ def chat(sock, box, peer_fp, name):
             break
         if message == "quit":
             break
+        if not message.strip():    # bare Enter / whitespace: send nothing
+            continue
         try:
             send_message(sock, box.encrypt(message.encode()))
         except OSError:
