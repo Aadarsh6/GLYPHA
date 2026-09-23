@@ -582,3 +582,10 @@ What: pyproject.toml (SPDX license, six py-modules, three entry points:glypha / 
 Result: [`https://pypi.org/project/glypha/2.0.0/`] — pip install glyphaworks worldwide with pynacl resolved as a dependency. Entry-point smoketest passed (glypha, glypha-relay); empty-message input fix included;graceful degradation re-verified via the packaged command.
 
 Note: release process = bump version → build → twine upload (~5 min).README refresh + CI/CD auto-publish queued for next release.
+
+**V2.5.1 — First contact with the hostile internet (incident report)**
+~48h after publication, internet scanners located the rendezvous (port7000, public IP) and began sending hostile length headers. The unpatchedrecv_message attempted multi-GB allocations → MemoryError per connectionthread; the server survived but degraded. This was the exact flawdeferred at V1 with trigger "when remotely reachable" — the triggerfired on schedule.
+
+Response: MAX_MESSAGE_SIZE (1 MiB cap, reject = None = close) deployedto both VM servers; attack neutralized (silent drop). Released toclients as glypha 2.0.1.
+
+Secondary findings: chat_mode conflated "rendezvous unreachable" with"peer not found" (fixed: distinct messages); user-facing hint stringshad stale command names and a missing space; identity files living inthe CWD caused fingerprint churn on project move (pins correctly flagkey changes — moving identity to ~/.glypha is queued with the configfile work).
