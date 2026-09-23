@@ -9,6 +9,7 @@ import hashlib
 import json
 import base64
 import time
+from tkinter.constants import N
 
 from nacl.public import PrivateKey, PublicKey, Box
 from nacl.secret import SecretBox
@@ -561,7 +562,10 @@ def chat_mode(my_name, peer_name, rv_host):
     expected_fp = None
     result = None
 
-    if info is not None and info.get("status") == "found":
+    if info is None:
+         print(f"[chat] rendezvous unreachable at {rv_host} — check the address")
+    
+    elif info is not None and info.get("status") == "found":
         expected_fp = info.get("fingerprint")
         print(f"[chat] trying direct connection to {info['ip']}:{info['port']}...")
         result = try_direct(info["ip"], info["port"], private_key, own_fp, expected_fp, peer_name)
@@ -579,7 +583,7 @@ def chat_mode(my_name, peer_name, rv_host):
         result = try_relay(my_name, peer_name, private_key, own_fp, rv_host, expected_fp)
         if result is None:
             print(f"[chat] could not reach '{peer_name}'.")
-            print(f"       Are they running:  glypha chat{peer_name} {my_name} {rv_host}")
+            print(f"       Are they running:  glypha chat {peer_name} {my_name} {rv_host}")
             return
 
     sock, box, peer_fp = result
