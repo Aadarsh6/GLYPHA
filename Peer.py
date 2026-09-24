@@ -20,7 +20,7 @@ from nacl.secret import SecretBox
 from protocol import recv_message, send_message
 from storage import init_db, save_message, load_messages
 import ui
-from ui import C
+from ui import C, ui as out
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -165,7 +165,6 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
 
     init_db(db_filename)
 
-    stream = ui.MessageStream()
     session = PromptSession(ANSI(f"{C.GRAY}❯{C.RESET} "))
     connected = True
 
@@ -192,14 +191,16 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
         return None
 
     with patch_stdout():
-        for direction, text, _ts in load_messages(db_filename, peer_fp, secret_box):
-            who = "You" if direction == "sent" else peer_label
-            stream.message(who, text, C.CYAN if who == "You" else C.GREEN)
+        # history — same one-line format, sealed off from the live session
+        history = load_messages(db_filename, peer_fp, secret_box)
+        if history:
+            ui.ui(f"  {C.GRAY}── history ──{C.RESET}")
+            for direction, text, _ts in history:
+                who = "You" if direction == "sent" else peer_label
+                ui.message(who, text, C.CYAN if who == "You" else C.GREEN)
 
-        ui.ok("connected · encrypted" +
-              (" · verified" if meta and meta.get("verified") else ""))
+        ui.ok(f"connected · encrypted{meta_char if (meta_char := ' · verified' if meta and meta.get('verified') else '') else ''}")
         ui.ui(f"  {C.GRAY}type a message · /help for commands{C.RESET}")
-        stream.reset()
 
         def receive_loop():
             nonlocal connected
@@ -207,16 +208,16 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
                 data = recv_message(sock)
                 if data is None:
                     if connected:
-                        stream.event(f"{peer_label} disconnected")
+                        ui.event(f"{peer_label} disconnected")
                     connected = False
                     break
                 try:
                     message = box.decrypt(data).decode()
                 except Exception:
-                    stream.event("received an undecryptable frame — ignored")
+                    ui.event("received an undecryptable frame — ignored")
                     continue
                 save_message(db_filename, peer_fp, "received", message, secret_box)
-                stream.message(peer_label, message, C.GREEN)
+                ui.message(peer_label, message, C.GREEN)
 
         receiver = threading.Thread(target=receive_loop, daemon=True)
         receiver.start()
@@ -244,7 +245,7 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
                 ui.warn("peer is gone")
                 break
             save_message(db_filename, peer_fp, "sent", message, secret_box)
-            stream.message("You", message, C.CYAN)
+            ui.message("You", message, C.CYAN)
 
     connected = False
     sock.close()
