@@ -1,10 +1,10 @@
 Metadata-Version: 2.4
 Name: glypha
-Version: 2.0.0
+Version: 2.2.0
 Summary: P2P encrypted chat from raw Python sockets: E2E encryption, persistent identities, fingerprint verification, peer discovery, NAT traversal with relay fallback
 Author: Adarsh Mishra
 License-Expression: MIT
-Project-URL: Homepage, https://github.com/<your-github-username>/<repo-name>
+Project-URL: Homepage, https://github.com/YOUR-USERNAME/YOUR-REPO
 Keywords: p2p,encryption,chat,sockets,nacl,networking,e2e
 Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Communications :: Chat
@@ -12,6 +12,7 @@ Classifier: Topic :: Education
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Requires-Dist: pynacl>=1.5
+Requires-Dist: prompt_toolkit>=3.0
 
 # P2P Encrypted Chat
 
