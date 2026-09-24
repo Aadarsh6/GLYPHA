@@ -164,7 +164,7 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
 
     init_db(db_filename)
 
-    session = PromptSession(ANSI(f"{C.GRAY}❯{C.RESET} "))
+    session = PromptSession(ANSI(f"{C.GRAY}❯{C.RESET} "), erase_when_done=True)
     connected = True
 
     def handle_command(cmd):
@@ -231,7 +231,6 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
             if not connected:
                 ui.warn("peer is gone")
                 break
-            ui.erase_echo(message)          # raw typed line gone; empty Enter = silent
             if message in ("quit", "/quit"):
                 break
             if not message.strip():
