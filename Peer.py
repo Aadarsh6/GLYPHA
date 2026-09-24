@@ -126,17 +126,18 @@ def verify_or_reject(own_fp, peer_fp, expected_fp, peer_name=None):
 
 # ───────────────────────── chat (shared by every mode) ─────────────────────────
 
-def chat(sock, box, peer_fp, name):
+def chat(sock, box, peer_fp, name, peer_display = None):
     """The conversation loop: load history, run a receive thread and an
     input/send loop, store every message encrypted, exit cleanly."""
     storage_key = load_or_create_secret_key(f"{name}_storage_key.bin")
     secret_box = SecretBox(storage_key)
     db_filename = f"{name}_history.db"
+    peer_label = peer_display or name
 
     init_db(db_filename)
 
     for direction, text, timestamp in load_messages(db_filename, peer_fp, secret_box):
-        print(f"{'You' if direction == 'sent' else 'Them'}: {text}")
+        print(f"{'You' if direction == 'sent' else peer_label}: {text}")
 
     print("Secure connection established!")
 
@@ -157,7 +158,7 @@ def chat(sock, box, peer_fp, name):
                 print("\nReceived an undecryptable frame — ignored.")
                 continue
             save_message(db_filename, peer_fp, "received", message, secret_box)
-            print("Them:", message)
+            print(f"{peer_label}:", message)
 
     receiver = threading.Thread(target=receive_loop, daemon=True)
     receiver.start()
@@ -588,7 +589,7 @@ def chat_mode(my_name, peer_name, rv_host):
 
     sock, box, peer_fp = result
     print("[chat] connected!")
-    chat(sock, box, peer_fp, my_name)
+    chat(sock, box, peer_fp, my_name, peer_display = peer_name)
 
 
 # ───────────────────────── dispatch ─────────────────────────
