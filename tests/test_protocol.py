@@ -78,11 +78,11 @@ def test_fragmented_delivery():
 
 
 def test_large_message():
-    # 1 MiB — bigger than any kernel socket buffer, so sendall MUST
+    # ~900 KB — bigger than any kernel socket buffer, so sendall MUST
     # block until the reader drains, and the receiver must reassemble.
     # Runs the receive in a thread exactly like our real receive thread.
     a, b = make_pair()
-    payload = os.urandom(1024 * 1024)
+    payload = os.urandom(900_000)
     result = {}
     t = threading.Thread(target=lambda: result.update(data=recv_message(b)))
     t.start()
@@ -91,6 +91,24 @@ def test_large_message():
     assert result["data"] == payload
     a.close(); b.close()
 
+def test_exactly_at_limit_accepted():
+    # exactly MAX_MESSAGE_SIZE must still go through
+    a, b = make_pair()
+    payload = os.urandom(1_000_000)
+    result = {}
+    t = threading.Thread(target=lambda: result.update(data=recv_message(b)))
+    t.start()
+    send_message(a, payload)
+    t.join(timeout=15)
+    assert result["data"] == payload
+    a.close(); b.close()
+
+
+def test_one_byte_over_limit_rejected():
+    a, b = make_pair()
+    a.sendall(struct.pack("!I", 1_000_001))
+    assert recv_message(b) is None
+    a.close(); b.close()
 
 def test_clean_disconnect_returns_none():
     # peer closes politely (FIN) → b"" on recv → recv_message → None.
@@ -110,6 +128,8 @@ def test_reset_disconnect_returns_none():
     a.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
     a.close()   # abrupt: RST, no FIN
     assert recv_message(b) is None   # OSError-as-EOF contract
-    b.close()
+    b.close
+
+    
 
     
