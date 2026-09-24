@@ -196,3 +196,11 @@ Fingerprint:c849:a2b7:460a:13c0:cde3:05d6:d5d0:d978:70f7:a663:d600:d73c:30a4:2b5
 
 # if __name__ == "__main__":
 #     main()
+
+
+
+ python show_fp.py
+21dd:712a:1386:aa87:1783:cd2b:0c17:6ded:a399:67bc:7417:cd52:1f79:4a65:2407:1aff
+
+$ python show_fp.py
+21dd:712a:1386:aa87:1783:cd2b:0c17:6ded:a399:67bc:7417:cd52:1f79:4a65:2407:1aff

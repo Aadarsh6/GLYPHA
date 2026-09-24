@@ -3,3 +3,6 @@
 text.txt
 known_peers.json
 .pypirc
+smoke.py
+show_fp.py
+text.txt
