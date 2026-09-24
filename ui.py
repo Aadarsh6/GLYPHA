@@ -40,14 +40,14 @@ def rule():
 
 
 def banner():
-    """The h1: spaced letters, bright cyan, heavy rules."""
     W = _w()
+    width = min(W - 4, 56)
     ui("")
     ui(f"{C.BOLD}{C.CYAN}{'◇  G  L  Y  P  H  A'.center(W)}{C.RESET}")
-    ui(f"{C.GRAY}{f'encrypted p2p chat · v{__version__}'.center(W)}{C.RESET}")
-    ui(f"{C.GRAY}{'━' * min(W - 4, 56).center(W - 4)}{C.RESET}")
+    ui(f"{C.CYAN}{'◆  E N C R Y P T E D   P 2 P   C H A T'.center(W)}{C.RESET}")
+    ui(f"{C.GRAY}{f'v{__version__} · sockets up · keys local · relay when NATs say no'.center(W)}{C.RESET}")
+    ui(f"{C.GRAY}{'━' * width}{C.RESET}")
     ui("")
-
 
 def event(text):
     ui(f"{C.GRAY}{datetime.now():%H:%M}  •  {text}{C.RESET}")
