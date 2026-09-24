@@ -1,5 +1,4 @@
-# ui.py — Glypha's presentation layer. peer.py emits facts; ui.py decides
-# how they look. No networking code ever touches a color code.
+# ui.py — presentation layer. peer.py emits facts; ui.py decides looks.
 
 import threading
 from datetime import datetime
@@ -9,6 +8,9 @@ from prompt_toolkit.formatted_text import ANSI
 
 __version__ = "2.1.0"
 MARK = "◇"
+NAME_W = 9            # fixed name column — every message aligns here
+TS_W = 5              # "17:25"
+_CONT_PAD = " " * (TS_W + 2 + NAME_W + 2)   # continuation indent
 
 
 class C:
@@ -17,15 +19,14 @@ class C:
 
 
 def ui(text):
-    """One styled line. Atomic under patch_stdout() — incoming messages
-    repaint the input line instead of interrupting your typing."""
+    """One styled line. Atomic under patch_stdout()."""
     print_formatted_text(ANSI(text))
 
 
-def status(msg):  ui(f"  {C.GRAY}• {msg}{C.RESET}")
-def ok(msg):      ui(f"  {C.GREEN}✔ {msg}{C.RESET}")
-def warn(msg):    ui(f"  {C.YELLOW}⚠ {msg}{C.RESET}")
-def err(msg):     ui(f"  {C.RED}✕ {msg}{C.RESET}")
+def status(msg):  ui(f"{C.GRAY}  • {msg}{C.RESET}")
+def ok(msg):      ui(f"{C.GREEN}  ● {msg}{C.RESET}")
+def warn(msg):    ui(f"{C.YELLOW}  ⚠ {msg}{C.RESET}")
+def err(msg):     ui(f"{C.RED}  ✕ {msg}{C.RESET}")
 
 
 def rule():
@@ -33,11 +34,35 @@ def rule():
 
 
 def banner():
-    ui(f"{C.BOLD}{MARK} GLYPHA{C.RESET} {C.GRAY}· v{__version__} · encrypted p2p chat{C.RESET}")
+    """Centered brand header — the h1."""
+    ui("")
+    ui(f"{C.BOLD}{C.CYAN}{'◇ GLYPHA'.center(56)}{C.RESET}")
+    ui(f"{C.GRAY}{f'encrypted p2p chat · v{__version__}'.center(56)}{C.RESET}")
+    ui(f"{C.GRAY}{'─' * 44}".center(0) + f"{C.RESET}")
+    ui("")
+
+
+def _center(text):
+    return text.center(56)
+
+
+def event(text):
+    """System events: one dim line, never competing with messages."""
+    ui(f"{C.GRAY}{datetime.now():%H:%M}  •  {text}{C.RESET}")
+
+
+def message(who, text, color):
+    """One message = one line: HH:MM  NAME  text. Neutral body, colored
+    name, continuation lines indent under the text column."""
+    label = who[:NAME_W].ljust(NAME_W)
+    ts = f"{C.GRAY}{datetime.now():%H:%M}{C.RESET}"
+    lines = str(text).splitlines() or [""]
+    ui(f" {ts}  {color}{label}{C.RESET}  {lines[0]}")
+    for extra in lines[1:]:
+        ui(_CONT_PAD + extra)
 
 
 def fingerprint_block(fp, label="fingerprint"):
-    """16 hex groups as two rows of eight — the format two humans compare."""
     groups = fp.split(":")
     ui(f"  {C.GRAY}{label}{C.RESET}")
     for i in range(0, 16, 8):
@@ -45,22 +70,19 @@ def fingerprint_block(fp, label="fingerprint"):
 
 
 def identity_screen(own_fp):
-    """First-run welcome: shown once, when the identity key is born."""
     rule()
-    ui(f"{C.BOLD}{MARK} GLYPHA{C.RESET} {C.GRAY}— welcome{C.RESET}")
+    ui(f"{C.BOLD}{C.CYAN}{'◇ GLYPHA — welcome'.center(56)}{C.RESET}")
     ui("")
     ui("  Your identity has been created and stored locally.")
     rule()
     fingerprint_block(own_fp)
     rule()
-    ui(f"  {C.GRAY}Share this fingerprint with your peers out-of-band —{C.RESET}")
-    ui(f"  {C.GRAY}it is how they know 'you' is really you.{C.RESET}")
+    ui(f"  {C.GRAY}Share this fingerprint out-of-band — it is how{C.RESET}")
+    ui(f"  {C.GRAY}your peers know 'you' is really you.{C.RESET}")
     ui("")
 
 
 def connection_panel(meta):
-    """The /status panel — technical transparency. Every field is true
-    data from the live connection."""
     rule()
     ui(f"  {C.BOLD}{MARK} GLYPHA · CONNECTION{C.RESET}")
     rule()
@@ -107,36 +129,3 @@ def help_panel():
     for line in HELP_LINES:
         ui(f"  {C.CYAN}{line}{C.RESET}")
     rule()
-
-
-class MessageStream:
-    """Grouped chat rendering: a dim timestamp + sender header only when
-    the sender changes; consecutive messages indent underneath. Shared by
-    the send loop and the receive thread — hence the lock."""
-
-    def __init__(self):
-        self._owner = None
-        self._lock = threading.Lock()
-
-    def reset(self):
-        with self._lock:
-            self._owner = None
-
-    def _break(self):
-        if self._owner is not None:
-            ui("")
-
-    def message(self, who, text, color):
-        with self._lock:
-            self._break()
-            if who != self._owner:
-                ui(f"{C.GRAY}{datetime.now():%H:%M}{C.RESET}  "
-                   f"{C.BOLD}{color}{who}{C.RESET}")
-                self._owner = who
-            ui(f"       {text}")
-
-    def event(self, text):
-        with self._lock:
-            self._break()
-            self._owner = None   # events end a block
-            ui(f"{C.GRAY}{datetime.now():%H:%M}  •  {text}{C.RESET}")
