@@ -589,3 +589,6 @@ Note: release process = bump version → build → twine upload (~5 min).README 
 Response: MAX_MESSAGE_SIZE (1 MiB cap, reject = None = close) deployedto both VM servers; attack neutralized (silent drop). Released toclients as glypha 2.0.1.
 
 Secondary findings: chat_mode conflated "rendezvous unreachable" with"peer not found" (fixed: distinct messages); user-facing hint stringshad stale command names and a missing space; identity files living inthe CWD caused fingerprint churn on project move (pins correctly flagkey changes — moving identity to ~/.glypha is queued with the configfile work).
+
+
+UI iteration hit its 6th merge-ghost bug. Root cause across all six: full-file pastes into an 800-line module mid-feature. ui.py extracted (presentation layer), peer.py cleaned to single-purpose. Rule adopted: no file edits verified only by eye — every edit gets the 10-second import smoke. File split (modes.py) scheduled as 2.2's first task.
