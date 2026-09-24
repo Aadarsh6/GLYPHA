@@ -20,7 +20,6 @@ import hashlib
 import json
 import base64
 import time
-from tkinter.constants import N
 
 from nacl.public import PrivateKey, PublicKey, Box
 from nacl.secret import SecretBox
