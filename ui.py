@@ -37,6 +37,7 @@ def banner():
 
 
 def fingerprint_block(fp, label="fingerprint"):
+    """16 hex groups as two rows of eight — the format two humans compare."""
     groups = fp.split(":")
     ui(f"  {C.GRAY}{label}{C.RESET}")
     for i in range(0, 16, 8):
@@ -58,8 +59,8 @@ def identity_screen(own_fp):
 
 
 def connection_panel(meta):
-    """The /status panel — Glypha's technical transparency moment.
-    Every field here is true data from the live connection."""
+    """The /status panel — technical transparency. Every field is true
+    data from the live connection."""
     rule()
     ui(f"  {C.BOLD}{MARK} GLYPHA · CONNECTION{C.RESET}")
     rule()
@@ -83,20 +84,20 @@ def whoami_panel(name, own_fp):
     rule()
     ui(f"  {C.BOLD}{MARK} GLYPHA · IDENTITY{C.RESET}")
     rule()
-    ui(f"  {C.GRAY}name{C.RESET}       {name}")
+    ui(f"  {C.GRAY}name{C.RESET}          {name}")
     ui(f"  {C.GRAY}identity key{C.RESET}  persistent (~/.glypha)")
-    ui(f"  {C.GRAY}storage{C.RESET}     encrypted")
+    ui(f"  {C.GRAY}storage{C.RESET}       encrypted")
     ui("")
     fingerprint_block(own_fp)
     rule()
 
 
 HELP_LINES = [
-    ("/status       connection details — transport, endpoint, identity"),
-    ("/whoami       your identity and fingerprint"),
-    ("/fingerprint  peer's fingerprint"),
-    ("/clear        clear the screen"),
-    ("/quit         leave the chat"),
+    "/status       connection details — transport, endpoint, identity",
+    "/whoami       your identity and fingerprint",
+    "/fingerprint  peer's fingerprint",
+    "/clear        clear the screen",
+    "/quit         leave the chat",
 ]
 
 
@@ -116,6 +117,10 @@ class MessageStream:
     def __init__(self):
         self._owner = None
         self._lock = threading.Lock()
+
+    def reset(self):
+        with self._lock:
+            self._owner = None
 
     def _break(self):
         if self._owner is not None:

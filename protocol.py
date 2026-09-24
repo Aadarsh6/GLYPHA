@@ -15,6 +15,9 @@ def send_message(sock, data):
     sock.sendall(data)
 
 
+MAX_MESSAGE_SIZE = 1_000_000   # 1 MiB — hostile headers get rejected, not buffered
+
+
 def recv_message(sock):
     try:
         header = b""
@@ -26,6 +29,10 @@ def recv_message(sock):
 
         length = struct.unpack("!I", header)[0]
 
+        if length > MAX_MESSAGE_SIZE:      # NEW — the DoS fix:
+            return None                    # NEW — reject, same convention as death;
+                                           # NEW — callers close. No allocation happens.
+
         data = b""
         while len(data) < length:
             chunk = sock.recv(length - len(data))
@@ -36,7 +43,4 @@ def recv_message(sock):
         return data
 
     except OSError:
-        # ConnectionResetError (WinError 10054), BrokenPipeError,
-        # timeouts — connection is dead or unusable. Report it
-        # exactly like a clean EOF so callers have ONE convention.
         return None

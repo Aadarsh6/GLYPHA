@@ -14,6 +14,13 @@ def make_pair():
     a, b = socket.socketpair()
     return a, b
 
+def test_oversized_length_header_rejected():
+    # REGRESSION: a hostile 4-byte header claiming ~4 GB used to make the
+    # receiver hang/allocate. MAX_MESSAGE_SIZE must reject it immediately.
+    a, b = make_pair()
+    a.sendall(struct.pack("!I", 4_000_000_000))
+    assert recv_message(b) is None
+    a.close(); b.close()
 
 def frame(data):
     """Build a wire frame by hand, INDEPENDENT of send_message.
@@ -104,3 +111,5 @@ def test_reset_disconnect_returns_none():
     a.close()   # abrupt: RST, no FIN
     assert recv_message(b) is None   # OSError-as-EOF contract
     b.close()
+
+    
