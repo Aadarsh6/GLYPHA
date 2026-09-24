@@ -2,6 +2,7 @@
 # the project folder never rebirths an identity.
 
 import os
+import shutil
 
 from nacl.public import PrivateKey
 from nacl.secret import SecretBox
@@ -11,8 +12,15 @@ _KEY_DIR = os.path.join(os.path.expanduser("~"), ".glypha")
 
 
 def _path(filename):
+    # bare names resolve into ~/.glypha; pre-2.1.0 CWD files migrate once
+    if os.path.isabs(filename):
+        return filename
     os.makedirs(_KEY_DIR, exist_ok=True)
-    return os.path.join(_KEY_DIR, filename)
+    new = os.path.join(_KEY_DIR, filename)
+    old = os.path.join(os.getcwd(), filename)
+    if not os.path.exists(new) and os.path.exists(old):
+        shutil.copy2(old, new)
+    return new
 
 
 def key_exists(filename):

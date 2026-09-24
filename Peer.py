@@ -10,6 +10,8 @@ import json
 import base64
 import time
 import os
+import shutil
+
 
 import identity
 from identity import load_or_create_key, load_or_create_secret_key
@@ -32,6 +34,14 @@ CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".glypha")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 KNOWN_PEERS_FILE = os.path.join(CONFIG_DIR, "known_peers.json")
 
+
+
+def _known_peers_path():
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    old = os.path.join(os.getcwd(), "known_peers.json")
+    if not os.path.exists(KNOWN_PEERS_FILE) and os.path.exists(old):
+        shutil.copy2(old, KNOWN_PEERS_FILE)
+    return KNOWN_PEERS_FILE
 
 # ───────────────────────── helpers ─────────────────────────
 
