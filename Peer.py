@@ -113,7 +113,7 @@ def verify_fingerprints(own_fp, peer_fp):
 
 def load_known_peers():
     try:
-        with open(KNOWN_PEERS_FILE) as f:
+        with open(_known_peers_path()) as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
@@ -123,7 +123,7 @@ def pin_peer(name, fingerprint):
     os.makedirs(CONFIG_DIR, exist_ok=True)
     known = load_known_peers()
     known[name] = fingerprint
-    with open(KNOWN_PEERS_FILE, "w") as f:
+    with open(_known_peers_path(), "w") as f:
         json.dump(known, f, indent=2)
 
 
