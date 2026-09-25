@@ -140,7 +140,7 @@ def banner():
     ui("")
     ui(f"{C.GRAY}{subtitle.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{f'v{__version__} · keys local · relay when NATs say no · by- Aadarsh Mishra'.center(W)}{C.RESET}")
-    ui(f"{C.GRAY}{f'v{__version__} · github.com/Aadarsh6/GLYPHA'.center(W)}{C.RESET}")
+    ui(f"{C.GRAY}{'github.com/Aadarsh6/GLYPHA'.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{'─' * min(W, 60)}{C.RESET}")
     ui("")
 
