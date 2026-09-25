@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glypha"
-version = "2.2.0"
+version = "2.3.0"
 description = "P2P encrypted chat from raw Python sockets: E2E encryption, persistent identities, fingerprint verification, peer discovery, NAT traversal with relay fallback"
 readme = "README.md"
 requires-python = ">=3.10"
