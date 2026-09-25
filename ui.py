@@ -53,6 +53,14 @@ def _scale_rows(rows, sx, sy):
             scaled.append(wide)
     return scaled
 
+def history_line(who, text, timestamp=None, mine=False):
+    """Old messages: compact one-liners, all dim — visually 'the past'.
+    Bubbles are reserved for the live session."""
+    color = C.CYAN if mine else C.GREEN
+    ts = str(timestamp)[11:16] if timestamp and len(str(timestamp)) >= 16 else "     "
+    for ln in str(text).splitlines() or [""]:
+        ui(f"{C.GRAY}{ts}  {who[:NAME_W].ljust(NAME_W)}{C.RESET} {C.GRAY}{ln}{C.RESET}")
+
 
 def _wordmark(word, gap=2, sx=2, sy=1):
     letters = [_scale_rows(GLYPH_FONT[ch], sx, sy) for ch in word if ch in GLYPH_FONT]

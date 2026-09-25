@@ -193,10 +193,12 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
         history = load_messages(db_filename, peer_fp, secret_box)
         if history:
             ui.rule()
-            ui.status(f"{len(history)} earlier messages")
-            for direction, text, _ts in history:
-                ui.message("You" if direction == "sent" else peer_label,
-                           text, direction == "sent")
+            recent = history[-30:]
+            if len(history) > 30:
+                ui.status(f"{len(history) - 30} older messages live in scrollback — scroll up")
+            for direction, text, ts in recent:
+                who = "You" if direction == "sent" else peer_label
+                ui.history_line(who, text, ts, mine=(direction == "sent"))
             ui.rule()
 
         ui.ok("connected · encrypted" +
