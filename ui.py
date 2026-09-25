@@ -94,7 +94,7 @@ def banner():
 
     ui("")
     for line in lines:
-        ui(pad + f"{C.BOLD}{line}{C.RESET}")
+        ui(pad + f"{C.BOLD}{C.WHITE}{line}{C.RESET}")
     ui("")
     ui(f"{C.GRAY}{subtitle.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{f'v{__version__} · sockets up · keys local · relay when NATs say no'.center(W)}{C.RESET}")
@@ -106,12 +106,13 @@ def event(text):
     ui(f"{C.GRAY}{datetime.now():%H:%M}  •  {text}{C.RESET}")
 
 
-def _outline_bubble(lines, strong=False):
-    """Plain outlined chat bubble — no fill, no text color. `strong` (used
-    for your own messages) makes the border bold instead of dim, so sent
-    and received read apart by weight rather than by color.
+def _outline_bubble(lines, mine=False):
+    """Plain outlined chat bubble — no fill. Your own messages get a bold
+    cyan border (the app's one brand color, echoing the banner); the
+    peer's stays a thin neutral gray, so the two read apart by both
+    weight and color without turning the whole screen into a rainbow.
     Returns (rendered_rows, total_visible_width)."""
-    b = C.BOLD if strong else C.GRAY
+    b = f"{C.BOLD}{C.CYAN}" if mine else C.GRAY
     content_w = max(len(l) for l in lines)
     top = f"{b}╭{'─' * (content_w + 2)}╮{C.RESET}"
     bot = f"{b}╰{'─' * (content_w + 2)}╯{C.RESET}"
@@ -121,14 +122,14 @@ def _outline_bubble(lines, strong=False):
 
 def message(who, text, mine):
     """One message, plain outlined bubble:
-    received → left,  thin gray border, name above
-    sent     → right, bold border, 'You' above
-    Timestamp sits on its own line below the bubble, dim and tucked into
-    the same corner as the bubble it belongs to.
+    received → left,  thin gray border, green name above
+    sent     → right, bold cyan border, cyan 'You' above
+    Timestamp sits on its own line below the bubble, small and dim,
+    tucked into the same corner as the bubble it belongs to.
     Bubbles hug their content (they don't stretch to the terminal edge)
     and wrap cleanly at any width."""
-    ts = f"{C.GRAY}{C.DIM}{datetime.now():%H:%M}{C.RESET}"
-    ts_len = 5  # "20:38"
+    ts_text = f"{datetime.now():%H:%M}"
+    ts = f"{C.GRAY}{C.DIM}{ts_text}{C.RESET}"
     W = _w()
     max_text = min(BUBBLE_MAX_TEXT, max(W - SIDE_MARGIN * 2 - 4, 16))
 
@@ -137,17 +138,17 @@ def message(who, text, mine):
         wrapped.extend(textwrap.wrap(line, max_text) or [""])
     wrapped = wrapped or [""]
 
-    rows, bw = _outline_bubble(wrapped, strong=mine)
+    rows, bw = _outline_bubble(wrapped, mine=mine)
 
     if mine:
-        header = f"{C.BOLD}You{C.RESET}"
+        header = f"{C.BOLD}{C.CYAN}You{C.RESET}"
         ui(" " * max(W - 3 - SIDE_MARGIN, 0) + header)
         for row in rows:
             ui(" " * max(W - bw - SIDE_MARGIN, 0) + row)
-        ui(" " * max(W - ts_len - SIDE_MARGIN, 0) + ts)
+        ui(" " * max(W - len(ts_text) - SIDE_MARGIN, 0) + ts)
     else:
         name = who[:NAME_W]
-        header = f"{C.BOLD}{name}{C.RESET}"
+        header = f"{C.BOLD}{C.GREEN}{name}{C.RESET}"
         ui(" " * SIDE_MARGIN + header)
         for row in rows:
             ui(" " * SIDE_MARGIN + row)
@@ -230,3 +231,4 @@ def help_panel():
     for line in HELP_LINES:
         ui(f"  {C.CYAN}{line}{C.RESET}")
     rule()
+
