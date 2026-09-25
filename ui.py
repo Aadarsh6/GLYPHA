@@ -260,6 +260,7 @@ def whoami_panel(name, own_fp):
 
 
 HELP_LINES = [
+    "/history [N]  view older messages (default 50, max 500)",
     "/status       connection details — transport, endpoint, identity",
     "/whoami       your identity and fingerprint",
     "/fingerprint  peer's fingerprint",

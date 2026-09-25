@@ -185,6 +185,19 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
         elif cmd == "/clear":
             ui.ui("\x1b[2J\x1b[H")
             ui.banner()
+        elif cmd.startswith("/history"):
+            parts = cmd.split()
+            n = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 50
+            n = min(n, 500)
+            full = load_messages(db_filename, peer_fp, secret_box)
+            chunk = full[-n:]
+            ui.rule()
+            ui.status(f"history: showing last {len(chunk)} of {len(full)}")
+            ui.history_reset()
+            for direction, text, ts in chunk:
+                who = "You" if direction == "sent" else peer_label
+                ui.history_line(who, text, ts, mine=(direction == "sent"))
+            ui.rule()
         else:
             ui.err(f"unknown command {cmd} — /help")
         return None
@@ -195,7 +208,8 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
             ui.rule()
             recent = history[-30:]
             if len(history) > 30:
-                ui.status(f"{len(history) - 30} older messages live in scrollback — scroll up")
+                ui.status(f"showing last 30 of {len(history)} — /history to view more")
+            ui.history_reset()
             for direction, text, ts in recent:
                 who = "You" if direction == "sent" else peer_label
                 ui.history_line(who, text, ts, mine=(direction == "sent"))
