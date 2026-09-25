@@ -19,7 +19,7 @@ classifiers = [
 dependencies = ["pynacl>=1.5", "prompt_toolkit>=3.0"]
 
 [project.urls]
-Homepage = "https://github.com/YOUR-USERNAME/YOUR-REPO"
+Homepage = "https://github.com/Aadarsh6/GLYPHA"
 
 [project.scripts]
 glypha = "peer:main"
