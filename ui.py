@@ -53,13 +53,48 @@ def _scale_rows(rows, sx, sy):
             scaled.append(wide)
     return scaled
 
+_history_last_sender = None  # tracks the previous line's speaker, for grouping
+_history_last_date = None    # tracks the previous line's date, for day dividers
+
+
+def history_reset():
+    """Call before printing a fresh history block, so grouping and day
+    dividers don't carry over from a previous one (e.g. after /clear)."""
+    global _history_last_sender, _history_last_date
+    _history_last_sender = None
+    _history_last_date = None
+
+
 def history_line(who, text, timestamp=None, mine=False):
-    """Old messages: compact one-liners, all dim — visually 'the past'.
-    Bubbles are reserved for the live session."""
+    """Old messages: compact one-liners, color-coded with the *same*
+    palette as the live bubbles (cyan You / green peer) so history reads
+    at a glance instead of blurring into one gray block. Consecutive
+    messages from the same sender share one header instead of repeating
+    the name+color on every single line, and a day changing prints a
+    quiet divider so a history spanning weeks doesn't read as one block."""
+    global _history_last_sender, _history_last_date
     color = C.CYAN if mine else C.GREEN
-    ts = str(timestamp)[11:16] if timestamp and len(str(timestamp)) >= 16 else "     "
-    for ln in str(text).splitlines() or [""]:
-        ui(f"{C.GRAY}{ts}  {who[:NAME_W].ljust(NAME_W)}{C.RESET} {C.GRAY}{ln}{C.RESET}")
+    name = who[:NAME_W]
+    ts_str = str(timestamp) if timestamp else ""
+    date = ts_str[:10] if len(ts_str) >= 10 else None
+    ts = ts_str[11:16] if len(ts_str) >= 16 else "     "
+
+    if date and date != _history_last_date:
+        if _history_last_date is not None:
+            ui("")
+        ui(f"  {C.GRAY}── {date} ──{C.RESET}")
+        _history_last_date = date
+        _history_last_sender = None  # a new day always gets its own header
+
+    is_new_speaker = name != _history_last_sender
+    _history_last_sender = name
+
+    for i, ln in enumerate(str(text).splitlines() or [""]):
+        if i == 0 and is_new_speaker:
+            label = f"{C.BOLD}{color}{name.ljust(NAME_W)}{C.RESET}"
+        else:
+            label = " " * NAME_W
+        ui(f"{C.GRAY}{ts}{C.RESET}  {label}  {ln}")
 
 
 def _wordmark(word, gap=2, sx=2, sy=1):
@@ -239,4 +274,3 @@ def help_panel():
     for line in HELP_LINES:
         ui(f"  {C.CYAN}{line}{C.RESET}")
     rule()
-
