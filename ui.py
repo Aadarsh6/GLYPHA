@@ -11,7 +11,6 @@ __version__ = "2.2.0"
 MARK = "◇"
 NAME_W = 12         # peer-name display cap
 TS_W = 5            # "20:38"
-PROMPT_VISIBLE = 2  # "❯ "
 
 
 class C:
@@ -141,9 +140,9 @@ def banner():
     ui("")
     ui(f"{C.GRAY}{subtitle.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{f'v{__version__} · keys local · relay when NATs say no · by- Aadarsh Mishra'.center(W)}{C.RESET}")
+    ui(f"{C.GRAY}{f'v{__version__} · github.com/Aadarsh6/GLYPHA'.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{'─' * min(W, 60)}{C.RESET}")
     ui("")
-
 
 def event(text):
     ui(f"{C.GRAY}{datetime.now():%H:%M}  •  {text}{C.RESET}")
@@ -202,6 +201,7 @@ def message(who, text, mine):
 
     if mine:
         if show_header:
+            ui("")
             header = f"{C.BOLD}{C.CYAN}You{C.RESET}"
             ui(" " * max(W - 3 - SIDE_MARGIN, 0) + header)
         for row in rows:
@@ -210,20 +210,12 @@ def message(who, text, mine):
     else:
         name = who[:NAME_W]
         if show_header:
+            ui("")
             header = f"{C.BOLD}{C.GREEN}{name}{C.RESET}"
             ui(" " * SIDE_MARGIN + header)
         for row in rows:
             ui(" " * SIDE_MARGIN + row)
         ui(" " * SIDE_MARGIN + ts)
-    ui("")
-
-
-def erase_echo(msg):
-    """Erase the raw prompt+input line prompt_toolkit leaves behind on
-    Enter, so the formatted copy is the only one on screen. Empty Enter
-    becomes fully silent."""
-    used = max(1, -(-(PROMPT_VISIBLE + len(str(msg))) // _w()))  # ceil
-    ui("\x1b[2K" + "\x1b[1A\x1b[2K" * used)
 
 
 def fingerprint_block(fp, label="fingerprint"):
@@ -279,7 +271,7 @@ def whoami_panel(name, own_fp):
 
 
 HELP_LINES = [
-    "/history [N]  view older messages (default 50, max 500)",
+    "/history [N]  view older messages (default: all, max 500)",
     "/status       connection details — transport, endpoint, identity",
     "/whoami       your identity and fingerprint",
     "/fingerprint  peer's fingerprint",
