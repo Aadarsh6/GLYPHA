@@ -140,7 +140,7 @@ def banner():
         ui(pad + f"{C.BOLD}{C.WHITE}{line}{C.RESET}")
     ui("")
     ui(f"{C.GRAY}{subtitle.center(W)}{C.RESET}")
-    ui(f"{C.GRAY}{f'v{__version__} · sockets up · keys local · relay when NATs say no'.center(W)}{C.RESET}")
+    ui(f"{C.GRAY}{f'v{__version__} · keys local · relay when NATs say no · by- Aadarsh Mishra'.center(W)}{C.RESET}")
     ui(f"{C.GRAY}{'─' * min(W, 60)}{C.RESET}")
     ui("")
 
@@ -279,6 +279,7 @@ def whoami_panel(name, own_fp):
 
 
 HELP_LINES = [
+    "/history [N]  view older messages (default 50, max 500)",
     "/status       connection details — transport, endpoint, identity",
     "/whoami       your identity and fingerprint",
     "/fingerprint  peer's fingerprint",

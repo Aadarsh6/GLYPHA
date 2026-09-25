@@ -208,7 +208,7 @@ def chat(sock, box, peer_fp, name, peer_display=None, meta=None):
             ui.rule()
             recent = history[-30:]
             if len(history) > 30:
-                ui.status(f"showing last 30 of {len(history)} — /history to view more")
+                ui.status(f"showing last 30 of {len(history)} — /history [N] to view N messages")
             ui.history_reset()
             for direction, text, ts in recent:
                 who = "You" if direction == "sent" else peer_label
