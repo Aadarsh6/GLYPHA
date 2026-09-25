@@ -163,14 +163,31 @@ def _outline_bubble(lines, mine=False):
     return [top] + body + [bot], content_w + 4
 
 
+_last_message_sender = None  # tracks the previous *live* bubble's speaker
+
+
+def message_reset():
+    """Call when starting a fresh live session (or after /clear), so
+    grouping doesn't carry over a stale 'last speaker' from before."""
+    global _last_message_sender
+    _last_message_sender = None
+
+
 def message(who, text, mine):
     """One message, plain outlined bubble:
     received → left,  thin gray border, green name above
     sent     → right, bold cyan border, cyan 'You' above
     Timestamp sits on its own line below the bubble, small and dim,
-    tucked into the same corner as the bubble it belongs to.
+    tucked into the same corner as the bubble it belongs to. Consecutive
+    messages from the same sender, with nothing from the other side in
+    between, share one header instead of repeating the name every time.
     Bubbles hug their content (they don't stretch to the terminal edge)
     and wrap cleanly at any width."""
+    global _last_message_sender
+    identity = "You" if mine else who[:NAME_W]
+    show_header = identity != _last_message_sender
+    _last_message_sender = identity
+
     ts_text = f"{datetime.now():%H:%M}"
     ts = f"{C.GRAY}{C.DIM}{ts_text}{C.RESET}"
     W = _w()
@@ -184,15 +201,17 @@ def message(who, text, mine):
     rows, bw = _outline_bubble(wrapped, mine=mine)
 
     if mine:
-        header = f"{C.BOLD}{C.CYAN}You{C.RESET}"
-        ui(" " * max(W - 3 - SIDE_MARGIN, 0) + header)
+        if show_header:
+            header = f"{C.BOLD}{C.CYAN}You{C.RESET}"
+            ui(" " * max(W - 3 - SIDE_MARGIN, 0) + header)
         for row in rows:
             ui(" " * max(W - bw - SIDE_MARGIN, 0) + row)
         ui(" " * max(W - len(ts_text) - SIDE_MARGIN, 0) + ts)
     else:
         name = who[:NAME_W]
-        header = f"{C.BOLD}{C.GREEN}{name}{C.RESET}"
-        ui(" " * SIDE_MARGIN + header)
+        if show_header:
+            header = f"{C.BOLD}{C.GREEN}{name}{C.RESET}"
+            ui(" " * SIDE_MARGIN + header)
         for row in rows:
             ui(" " * SIDE_MARGIN + row)
         ui(" " * SIDE_MARGIN + ts)
@@ -260,7 +279,6 @@ def whoami_panel(name, own_fp):
 
 
 HELP_LINES = [
-    "/history [N]  view older messages (default 50, max 500)",
     "/status       connection details — transport, endpoint, identity",
     "/whoami       your identity and fingerprint",
     "/fingerprint  peer's fingerprint",
