@@ -592,3 +592,7 @@ Secondary findings: chat_mode conflated "rendezvous unreachable" with"peer not f
 
 
 UI iteration hit its 6th merge-ghost bug. Root cause across all six: full-file pastes into an 800-line module mid-feature. ui.py extracted (presentation layer), peer.py cleaned to single-purpose. Rule adopted: no file edits verified only by eye — every edit gets the 10-second import smoke. File split (modes.py) scheduled as 2.2's first task.
+
+
+Infrastructure — systemd deployment
+Both servers now run as systemd units (glypha-rendezvous, glypha-relay):Restart=always with 5s backoff, network-online ordering, non-root user,enabled at boot. Verified across a full VM reboot — servers self-recoveredwith zero manual action. Retires the per-session ssh+nohup ritual; deploysare now scp to /opt/glypha + systemctl restart. Logs via journalctl.
