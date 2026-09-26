@@ -1,12 +1,17 @@
-  __pycache__/
-  *.pyc
-  dist/
-  build/
-  *.egg-info/
-  .vscode/
-  *.bin
-  *.db
-  *.pem
-  known_peers.json
-  .pypirc
-  text.txt
+*.bin
+*.db
+*.db-journal
+known_peers.json
+*.pem
+*.pypirc
+pypirc
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+show_fp.py
+smoke.py
+text.txt

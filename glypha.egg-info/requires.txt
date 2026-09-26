@@ -1,2 +1,0 @@
-pynacl>=1.5
-prompt_toolkit>=3.0

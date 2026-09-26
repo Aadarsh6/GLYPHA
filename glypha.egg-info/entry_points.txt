@@ -1,4 +1,0 @@
-[console_scripts]
-glypha = peer:main
-glypha-relay = relay_server:main
-glypha-rendezvous = rendezvous_server:main
