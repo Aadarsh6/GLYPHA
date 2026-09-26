@@ -1,9 +1,12 @@
-*.db
-*.bin
-text.txt
-known_peers.json
-.pypirc
-smoke.py
-show_fp.py
-text.txt
-EOF
+  __pycache__/
+  *.pyc
+  dist/
+  build/
+  *.egg-info/
+  .vscode/
+  *.bin
+  *.db
+  *.pem
+  known_peers.json
+  .pypirc
+  text.txt
