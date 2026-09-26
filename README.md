@@ -154,8 +154,6 @@ glypha connect 192.168.1.6 9999 bob
   <img src="screenshots/relay-log.png" width="720" alt="Glypha relay server log">
 </p>
 
-*(Placeholders — drop the real captures into `screenshots/` under these exact filenames and they render automatically, hero included.)*
-
 ## How It Works
 
 The `chat` command walks the connection ladder automatically. The user never chooses a transport and never sees a traceback.
